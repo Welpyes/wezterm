@@ -11,18 +11,31 @@ jobs:
     
     steps:
     - name: Checkout WezTerm
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: wez/wezterm
         submodules: recursive
     
-    - name: Build in Termux container
-      uses: docker://termux/termux-docker:aarch64
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
       with:
-        args: |
-          pkg update && \
-          pkg install -y rust git binutils cmake openssl fontconfig freetype harfbuzz libxcb xcb-util-image xcb-util-keysyms xcb-util-wm libxkbcommon python zlib && \
-          cargo build --release -j 2
+        platforms: arm64
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Build in Termux container
+      run: |
+        docker run --rm \
+          --platform linux/arm64 \
+          -v ${{ github.workspace }}:/workspace \
+          -w /workspace \
+          termux/termux-docker:aarch64 \
+          bash -c "
+            pkg update && \
+            pkg install -y rust git binutils cmake openssl fontconfig freetype harfbuzz libxcb xcb-util-image xcb-util-keysyms xcb-util-wm libxkbcommon python zlib && \
+            cargo build --release -j 2
+          "
     
     - name: Upload binary
       uses: actions/upload-artifact@v4
