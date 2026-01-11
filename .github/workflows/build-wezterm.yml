@@ -22,6 +22,17 @@ jobs:
       run: |
         sudo chmod -R 777 ${{ github.workspace }}
     
+    - name: Cache Cargo registry and build artifacts
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-termux-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-termux-
+    
     - name: Build in Termux container
       run: |
         docker run --rm \
@@ -30,13 +41,14 @@ jobs:
           --dns 8.8.8.8 \
           --dns 1.1.1.1 \
           -v ${{ github.workspace }}:/workspace \
+          -v $HOME/.cargo:/root/.cargo \
           -w /workspace \
           termux/termux-docker:aarch64 \
           bash -c "
             yes | pkg upgrade -y && \
             pkg install -y x11-repo && \
-            pkg install -y rust git binutils cmake openssl fontconfig freetype harfbuzz libxcb xcb-util-image xcb-util-keysyms xcb-util-wm libxkbcommon python zlib && \
-            cargo build --release -j 2
+            pkg install -y rust git binutils cmake openssl fontconfig freetype harfbuzz libxcb xcb-util-image xcb-util-keysyms xcb-util-wm libxkbcommon python zlib libx11 xorgproto libxcb && \
+            cargo build --release
           "
     
     - name: Fix artifact permissions
