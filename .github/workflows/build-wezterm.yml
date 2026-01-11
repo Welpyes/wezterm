@@ -1,6 +1,6 @@
+name: Build WezTerm for Termux
+
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -14,22 +14,21 @@ jobs:
         repository: wez/wezterm
         submodules: recursive
     
-    - name: Set up QEMU with binfmt
+    - name: Set up QEMU
       run: |
         docker run --rm --privileged tonistiigi/binfmt --install all
-    
-    - name: Verify QEMU setup
-      run: |
-        docker run --rm --platform linux/arm64 arm64v8/ubuntu uname -m
     
     - name: Build in Termux container
       run: |
         docker run --rm \
+          --privileged \
           --platform linux/arm64 \
           -v ${{ github.workspace }}:/workspace \
           -w /workspace \
           termux/termux-docker:aarch64 \
           bash -c "
+            echo 'nameserver 8.8.8.8' > /etc/resolv.conf && \
+            echo 'nameserver 1.1.1.1' >> /etc/resolv.conf && \
             pkg update && \
             pkg install -y rust git binutils cmake openssl fontconfig freetype harfbuzz libxcb xcb-util-image xcb-util-keysyms xcb-util-wm libxkbcommon python zlib && \
             cargo build --release -j 2
